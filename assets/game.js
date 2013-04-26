@@ -20,7 +20,7 @@ var Game = {
                     game._current_screen.handleInput(event, e);
                 }
             });
-        }
+        };
 
         //Bind keyboard events
         bindEventToScreen('keydown');
@@ -49,7 +49,7 @@ var Game = {
             this._current_screen.render(this._display);
         }
     }
-}
+};
 
 window.onload = function() {
     //Check if Rot.js will work on this browser
@@ -63,4 +63,4 @@ window.onload = function() {
         //Display our first game screen
         Game.switchScreen(Game.Screen.startScreen);
     }
-}
+};
