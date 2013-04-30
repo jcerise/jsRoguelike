@@ -18,21 +18,32 @@ var Game = {
                 //When an event is recieved, send it to the current screen, if one exists
                 if (game._current_screen !== null) {
                     game._current_screen.handleInput(event, e);
+                    //Clear the screen
+                    game._display.clear();
+                    //Redraw the whole screen
+                    game._current_screen.render(game._display);
                 }
             });
         };
 
         //Bind keyboard events
         bindEventToScreen('keydown');
-        bindEventToScreen('keyup');
-        bindEventToScreen('keypress');
+        //These are not currently being used, but will be in the future
+        //bindEventToScreen('keyup');
+        //bindEventToScreen('keypress');
     },
-
     getDisplay: function() {
         //Return the main game display
         return this._display;
     },
-
+    getScreenWidth: function() {
+        //Return the width of our viewing screen
+        return this._display_width;
+    },
+    getScreenHeight: function() {
+        //Return the height of our viewing screen
+        return this._display_height;
+    },
     switchScreen: function(screen) {
         //Check if we already have a screen, if we do, notify it that we are exiting
         if (this._current_screen !== null) {
