@@ -24,3 +24,23 @@ Game.Map.prototype.getTile = function(x, y) {
         return this._tiles[x][y] || Game.Tile.nullTile;
     }
 };
+
+//Dig a tile
+Game.Map.prototype.dig = function(x, y) {
+    //If the tile is diggable, update it to a floor tile
+    if (this.getTile(x, y).isDiggable()) {
+        this._tiles[x][y] = Game.Tile.floorTile;
+    }
+}
+
+//Set a random starting position for the player, ensuring its a floor tile
+Game.Map.prototype.getRandomFloorPosition = function() {
+    //Randomly choose a tile that is floor
+    var x, y;
+    do {
+        x = Math.floor(Math.random()  * this._width);
+        y = Math.floor(Math.random() * this._height);
+    } while(this.getTile(x, y) != Game.Tile.floorTile);
+
+    return ({x: x, y: y});
+}
