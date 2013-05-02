@@ -29,9 +29,7 @@ Game.Screen.startScreen = {
 //Define the main playing screen
 Game.Screen.playingScreen = {
     _map: null,
-    _rooms: null,
-    _centerX: 0,
-    _centerY: 0,
+    _player: null,
 
     enter: function() {
         console.log("Entered playing screen")
@@ -65,12 +63,14 @@ Game.Screen.playingScreen = {
         });
 
         this._map = new Game.Map(map);
-        this._rooms = generator.getRooms();
 
-        //Set the cursor to the starting position, in this case, the very first room to be generated
-        var startX = this._rooms[0].getCenter()[0];
-        var startY = this._rooms[0].getCenter()[1];
-        this.move(startX, startY);
+        //Create the player entity and position it on a random floor tile
+        this._player = new Game.Entity(Game.PlayerTemplate);
+
+        //Get a random position (floor, of course)
+        var startPosition = this._map.getRandomFloorPosition();
+        this._player.setX(startPosition.x);
+        this._player.setY(startPosition.y);
     },
     exit: function() { console.log("Exited playing screen") },
     render: function(display) {
@@ -78,13 +78,13 @@ Game.Screen.playingScreen = {
         var screenHeight = Game.getScreenHeight();
 
         //make sure the X axis does not go to the left of the left bound (offscreen)
-        var topLeftX = Math.max(0, this._centerX - (screenWidth / 2));
+        var topLeftX = Math.max(0, this._player.getX() - (screenWidth / 2));
 
         //Make sure we still have enough space to fit an entire game screen
         topLeftX = Math.min(topLeftX, this._map.getWidth() - screenWidth);
 
         //Make sure the Y axis does not go above the top bound
-        var topLeftY = Math.max(0, this._centerY - (screenHeight / 2));
+        var topLeftY = Math.max(0, this._player.getY() - (screenHeight / 2));
 
         //make sure we still have enough space to fill an entire game screen
         topLeftY = Math.min(topLeftY, this._map.getHeight() - screenHeight);
@@ -93,25 +93,25 @@ Game.Screen.playingScreen = {
         //Start at our topleft corner, and draw the map according to where the player currently is
         for (var x = topLeftX; x < topLeftX + screenWidth; x++) {
             for (var y = topLeftY; y < topLeftY + screenHeight; y++) {
-                //Fetch the glyph for the tile, and render it to the screen at the offset position
-                var glyph = this._map.getTile(x, y).getGlyph();
+                //Fetch the tile at the coordinates, and render it to the screen at the offset position
+                var tile = this._map.getTile(x, y);
                 display.draw(
                     x - topLeftX,
                     y - topLeftY,
-                    glyph.getChar(),
-                    glyph.getForeground(),
-                    glyph.getBackground()
+                    tile.getChar(),
+                    tile.getForeground(),
+                    tile.getBackground()
                 );
             }
         }
 
-        //Render a player shaped cursor for the time being, starting in the first room to be generated
+        //Render the player
         display.draw(
-            this._centerX - topLeftX,
-            this._centerY - topLeftY,
-            '@',
-            'white',
-            'black'
+            this._player.getX() - topLeftX,
+            this._player.getY() - topLeftY,
+            this._player.getChar(),
+            this._player.getForeground(),
+            this._player.getBackground()
         );
     },
     handleInput: function(inputType, inputData) {
@@ -135,10 +135,13 @@ Game.Screen.playingScreen = {
         }
     },
     move: function(dX, dY) {
-        //Move the cursor the specified amount
-        //Make sure our cursor does not go out of bounds from the map width and height
-        this._centerX = Math.max(0, Math.min(this._map.getWidth() - 1, this._centerX + dX));
-        this._centerY = Math.max(0, Math.min(this._map.getHeight() - 1, this._centerY + dY));
+        //Move an entity the specified amount
+        var newX = this._player.getX() + dX;
+        var newY = this._player.getY() + dY;
+
+        //Try and move to the new coordinates specified by dX, dY
+        this._player.tryMove(newX, newY, this._map)
+
     }
 
 };
