@@ -18,10 +18,6 @@ var Game = {
                 //When an event is recieved, send it to the current screen, if one exists
                 if (game._current_screen !== null) {
                     game._current_screen.handleInput(event, e);
-                    //Clear the screen
-                    game._display.clear();
-                    //Redraw the whole screen
-                    game._current_screen.render(game._display);
                 }
             });
         };
@@ -57,8 +53,14 @@ var Game = {
         this._current_screen = screen;
         if (this._current_screen !== null) {
             this._current_screen.enter();
-            this._current_screen.render(this._display);
+            this.refresh();
         }
+    },
+    refresh: function() {
+        //Clear the screen
+        this._display.clear();
+        //Redraw the whole screen
+        this._current_screen.render(this._display);
     }
 };
 

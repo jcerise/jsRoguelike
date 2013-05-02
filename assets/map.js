@@ -1,6 +1,13 @@
 Game.Map = function(tiles) {
     this._tiles = tiles;
 
+    //Create a list which will hold all entities present on the map
+    this._entities = [];
+
+    //Create an engine instance and a scheduler
+    this._scheduler = new ROT.Scheduler.Simple();
+    this._engine = new ROT.Engine(this._scheduler);
+
     //Get the width and height of the map based on the size of the tiles array
     this._width = tiles.length;
     this._height = tiles[0].length;
@@ -14,6 +21,25 @@ Game.Map.prototype.getWidth = function() {
 Game.Map.prototype.getHeight = function() {
     return this._height;
 };
+
+Game.Map.prototype.getEngine = function() {
+    return this._engine;
+};
+
+Game.Map.prototype.getEntities = function() {
+    return this._entities;
+}
+
+Game.Map.prototype.getEntityAt = function(x, y) {
+    //Iterate through every entity, looking for one with matching coordinates
+    for (var i = 0; i < this._entities.length; i++) {
+        if (this._entities[i].getX() == x && this._entities[i].getY() == y) {
+            return this._entities[i];
+        }
+    }
+    //We didn't find an entity at the provided coordinates
+    return false;
+}
 
 //Get the tile at the given coordinates
 Game.Map.prototype.getTile = function(x, y) {
