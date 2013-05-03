@@ -32,6 +32,33 @@ Game.Mixins.Moveable = {
     }
 }
 
+//Attacker mixin - defines an entity that can attack destructible entities
+Game.Mixins.SimpleAttacker = {
+    name: 'SimpleAttacker',
+    groupName: 'Attacker',
+    attack: function(target) {
+        //only attack an entity that is destructible
+        if (target.hasMixin('Destructible')) {
+            target.takeDamage(this, 1);
+        }
+    }
+}
+
+//Destructible mixin - defines an entity that can be destroyed. Provides hit points and a method to take damage
+Game.Mixins.Destructible = {
+    name: 'Destructible',
+    init: function() {
+        this._hp = 1;
+    },
+    takeDamage: function(attacker, damage) {
+        this._hp -= damage;
+        //If hp drops to 0 or below, this entity is destroyed, remove it from the game
+        if (this._hp <= 0) {
+            this.getMap().removeEntity(this);
+        }
+    }
+}
+
 //Main players actor mixin
 Game.Mixins.PlayerActor = {
     name: 'PlayerActor',

@@ -16,7 +16,7 @@ Game.Map = function(tiles, player) {
     this.addEntityAtRandomPosition(player);
 
     //Add some random fungi to the dungeon
-    for (var i = 0; i <= 1000; i ++) {
+    for (var i = 0; i <= 50; i ++) {
         this.addEntityAtRandomPosition(new Game.Entity(Game.FungusTemplate));
     }
 };
@@ -65,7 +65,7 @@ Game.Map.prototype.dig = function(x, y) {
     if (this.getTile(x, y).isDiggable()) {
         this._tiles[x][y] = Game.Tile.floorTile;
     }
-}
+};
 
 //Add an entity to the game map
 Game.Map.prototype.addEntity = function(entity) {
@@ -85,7 +85,7 @@ Game.Map.prototype.addEntity = function(entity) {
     if (entity.hasMixin('Actor')) {
         this._scheduler.add(entity, true);
     }
-}
+};
 
 //Add an entity at a random position on the map, useful for quickly populating a dungeon floor
 Game.Map.prototype.addEntityAtRandomPosition = function(entity) {
@@ -95,7 +95,30 @@ Game.Map.prototype.addEntityAtRandomPosition = function(entity) {
     entity.setY(position.y);
 
     this.addEntity(entity);
-}
+};
+
+//remove an entity from the map. If it had an actor mixin, also remove it from the scheduler
+Game.Map.prototype.removeEntity = function(entity) {
+    //Find the entity in the list of entities, if it is available
+    for (var i =0; i < this._entities.length; i ++) {
+        if (this._entities[i] == entity) {
+            this._entities.splice(i, 1);
+            break;
+        }
+    }
+
+    //If the entity has an actor mixin, we also need to remove it from the scheduler
+    if (entity.hasMixin('Actor')) {
+        this._scheduler.remove(entity);
+    }
+};
+
+//Check if a given tile on the map is empty floor or not
+Game.Map.prototype.isEmptyFloor = function(x, y) {
+    //Check if the tile is floor first, and then if it is empty (no entity on tile)
+    return this.getTile(x, y) == Game.Tile.floorTile &&
+        !this.getEntityAt(x, y);
+};
 
 //Set a random starting position for the player, ensuring its a floor tile
 Game.Map.prototype.getRandomFloorPosition = function() {
@@ -104,7 +127,7 @@ Game.Map.prototype.getRandomFloorPosition = function() {
     do {
         x = Math.floor(Math.random()  * this._width);
         y = Math.floor(Math.random() * this._height);
-    } while(this.getTile(x, y) != Game.Tile.floorTile || this.getEntityAt(x, y));
+    } while(!this.isEmptyFloor(x, y));
 
     return ({x: x, y: y});
-}
+};
