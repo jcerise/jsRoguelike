@@ -62,15 +62,14 @@ Game.Screen.playingScreen = {
            }
         });
 
-        this._map = new Game.Map(map);
-
-        //Create the player entity and position it on a random floor tile
+        //Create the player entity
         this._player = new Game.Entity(Game.PlayerTemplate);
 
-        //Get a random position (floor, of course)
-        var startPosition = this._map.getRandomFloorPosition();
-        this._player.setX(startPosition.x);
-        this._player.setY(startPosition.y);
+        //Create the map instance for this floor
+        this._map = new Game.Map(map, this._player);
+
+        //Start the maps engine
+        this._map.getEngine().start();
     },
     exit: function() { console.log("Exited playing screen") },
     render: function(display) {
@@ -89,7 +88,7 @@ Game.Screen.playingScreen = {
         //make sure we still have enough space to fill an entire game screen
         topLeftY = Math.min(topLeftY, this._map.getHeight() - screenHeight);
 
-        //Iterate through all visible map cells and render them
+        //Iterate through all visible tiles and render them
         //Start at our topleft corner, and draw the map according to where the player currently is
         for (var x = topLeftX; x < topLeftX + screenWidth; x++) {
             for (var y = topLeftY; y < topLeftY + screenHeight; y++) {
@@ -105,14 +104,25 @@ Game.Screen.playingScreen = {
             }
         }
 
-        //Render the player
-        display.draw(
-            this._player.getX() - topLeftX,
-            this._player.getY() - topLeftY,
-            this._player.getChar(),
-            this._player.getForeground(),
-            this._player.getBackground()
-        );
+        //Render all visible entities
+        var entities = this._map.getEntities();
+        for (var i = 0; i < entities.length; i ++) {
+            var entity = entities[i];
+
+            //Only render this entity if they would show up on the screen
+            if (entity.getX() >= topLeftX && entity.getY() >= topLeftY &&
+                entity.getX() < topLeftX + screenWidth &&
+                entity.getY() < topLeftY + screenHeight) {
+                //Draw the entity to the screen
+                display.draw(
+                  entity.getX() - topLeftX,
+                  entity.getY() - topLeftY,
+                  entity.getChar(),
+                  entity.getForeground(),
+                  entity.getBackground()
+                );
+            }
+        }
     },
     handleInput: function(inputType, inputData) {
         if (inputType === 'keydown') {
@@ -132,6 +142,9 @@ Game.Screen.playingScreen = {
             } else if (inputData.keyCode === ROT.VK_DOWN) {
                 this.move(0, 1);
             }
+
+            //Unlock the engine
+            this._map.getEngine().unlock();
         }
     },
     move: function(dX, dY) {

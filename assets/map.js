@@ -1,4 +1,4 @@
-Game.Map = function(tiles) {
+Game.Map = function(tiles, player) {
     this._tiles = tiles;
 
     //Create a list which will hold all entities present on the map
@@ -11,6 +11,14 @@ Game.Map = function(tiles) {
     //Get the width and height of the map based on the size of the tiles array
     this._width = tiles.length;
     this._height = tiles[0].length;
+
+    //Add the player to the map
+    this.addEntityAtRandomPosition(player);
+
+    //Add some random fungi to the dungeon
+    for (var i = 0; i <= 1000; i ++) {
+        this.addEntityAtRandomPosition(new Game.Entity(Game.FungusTemplate));
+    }
 };
 
 //Standard getters
@@ -59,6 +67,36 @@ Game.Map.prototype.dig = function(x, y) {
     }
 }
 
+//Add an entity to the game map
+Game.Map.prototype.addEntity = function(entity) {
+    //Make sure the entities position is within the bounds of the map
+    if (entity.getX() < 0 || entity.getX() >= this._width ||
+        entity.getY() < 0 || entity.getY() >= this._height) {
+        throw new Error('Adding entity out of bounds.');
+    }
+
+    //Update the entity's map
+    entity.setMap(this);
+
+    //Add the entity to the list of entities
+    this._entities.push(entity);
+
+    //Check if the entity has an actor, if so, add it to the scheduler
+    if (entity.hasMixin('Actor')) {
+        this._scheduler.add(entity, true);
+    }
+}
+
+//Add an entity at a random position on the map, useful for quickly populating a dungeon floor
+Game.Map.prototype.addEntityAtRandomPosition = function(entity) {
+    var position = this.getRandomFloorPosition();
+
+    entity.setX(position.x);
+    entity.setY(position.y);
+
+    this.addEntity(entity);
+}
+
 //Set a random starting position for the player, ensuring its a floor tile
 Game.Map.prototype.getRandomFloorPosition = function() {
     //Randomly choose a tile that is floor
@@ -66,7 +104,7 @@ Game.Map.prototype.getRandomFloorPosition = function() {
     do {
         x = Math.floor(Math.random()  * this._width);
         y = Math.floor(Math.random() * this._height);
-    } while(this.getTile(x, y) != Game.Tile.floorTile);
+    } while(this.getTile(x, y) != Game.Tile.floorTile || this.getEntityAt(x, y));
 
     return ({x: x, y: y});
 }
