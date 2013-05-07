@@ -1,6 +1,39 @@
 Game.Mixins = {};
 
-//Mixins
+Game.sendMessage = function(recipient, message, args) {
+    //Make sure the recipient can recieve the message before doing any processing
+    if (recipient.hasMixin(Game.Mixins.MessageRecipient)) {
+        //If args were passed, then we can format the message, otherwise, no formatting will be used
+        if (args) {
+            message = vsprintf(message, args);
+        }
+        recipient.recieveMessage(message);
+    }
+};
+
+Game.sendMessageNearby = function(map, centerX, centerY, radius, message, args) {
+    //Send a message to every entity nearby and capable of receiving messages
+
+    //If args were passed, then we can format the message, otherwise, no formatting will be used
+    if (args) {
+        message = vsprintf(message, args);
+    }
+
+    //Get all nearby entities
+    var entities = map.getEntitiesWithinRadius(centerX, centerY, radius);
+
+    //Iterate through every nearby entity, sending the message to each one capable of receiving it
+    for (var i = 0; i < entities.length; i ++) {
+        if (entities[i].hasMixin(Game.Mixins.MessageRecipient)) {
+            entities[i].recieveMessage(message);
+        }
+    }
+
+};
+
+//=======================
+//===== Mixins
+//=======================
 
 //Define a Moveable mixin. This will try and move the entity in the given direction
 Game.Mixins.Moveable = {
@@ -38,34 +71,87 @@ Game.Mixins.Moveable = {
         //The tile is not walkable or diggable, and cannot be moved onto
         return false;
     }
-}
+};
 
 //Attacker mixin - defines an entity that can attack destructible entities
-Game.Mixins.SimpleAttacker = {
-    name: 'SimpleAttacker',
+Game.Mixins.Attacker = {
+    name: 'Attacker',
     groupName: 'Attacker',
+    init: function(template) {
+      this._attackValue = template['attackValue'] || 1;
+    },
+    getAttackValue: function() {
+      return this._attackValue;
+    },
     attack: function(target) {
-        //only attack an entity that is destructible
+        //If the target is destructible, calculate the damage of the attack by subtracting attack from defense
         if (target.hasMixin('Destructible')) {
-            target.takeDamage(this, 1);
+            var attack = this.getAttackValue();
+            var defense = target.getDefenseValue();
+            var max = Math.max(0, attack - defense);
+            var damage = 1 + Math.floor(Math.random() * max);
+
+            //Send a message to attacker, informing them of damage done to target
+            Game.sendMessage(this, 'You strike the %s for  %d damage!', [target.getName(), damage]);
+
+            //Send a message to the target, informing them of damage dealt to them
+            Game.sendMessage(target, 'The %s strikes you for %d damage!', [this.getName(), damage]);
+
+            target.takeDamage(this, damage);
         }
     }
-}
+};
 
 //Destructible mixin - defines an entity that can be destroyed. Provides hit points and a method to take damage
 Game.Mixins.Destructible = {
     name: 'Destructible',
-    init: function() {
-        this._hp = 1;
+    init: function(template) {
+        this._maxHp = template['maxHp'] || 10;
+        //We'll set HP from the template, in case an entity needs to start with less than their max HP value
+        this._hp = template['hp'] || this._maxHp;
+        //Define our defense, default of 0
+        this._defenseValue = template['defenseValue'] || 0;
+    },
+    getHp: function() {
+        return this._hp;
+    },
+    getMaxHp: function() {
+        return this._maxHp;
+    },
+    getDefenseValue: function() {
+        return this._defenseValue;
     },
     takeDamage: function(attacker, damage) {
         this._hp -= damage;
         //If hp drops to 0 or below, this entity is destroyed, remove it from the game
         if (this._hp <= 0) {
+            Game.sendMessage(attacker, 'You kill the %s!', [this.getName()]);
+            Game.sendMessage(this, 'You were killed by %s!', [attacker.getName()]);
             this.getMap().removeEntity(this);
         }
     }
-}
+};
+
+//Message Recipient Mixin - Allows an entity to recieve messages, which will be displayed on the screen
+Game.Mixins.MessageRecipient = {
+    name: 'MessageRecipient',
+    init: function(template) {
+        this._messages = [];
+    },
+    recieveMessage: function(message) {
+        this._messages.push(message);
+    },
+    getMessages: function() {
+        return this._messages;
+    },
+    clearMessages: function() {
+        this._messages = [];
+    }
+};
+
+//===========================
+//====== Actors
+//===========================
 
 //Main players actor mixin
 Game.Mixins.PlayerActor = {
@@ -80,8 +166,11 @@ Game.Mixins.PlayerActor = {
 
         //Lock the engine and wait asynchronously for the player to hit a key
         this.getMap().getEngine().lock();
+
+        //Clear the message queue, as all messages have been rendered to the screen
+        this.clearMessages();
     }
-}
+};
 
 //Fungus actor mixin
 Game.Mixins.FungusActor = {
@@ -114,29 +203,40 @@ Game.Mixins.FungusActor = {
                         entity.setY(this.getY() + yOffset);
                         this.getMap().addEntity(entity);
                         this._growthsRemaining --;
+
+                        //Broadcast a message to all nearby entities alerting them to the growth
+                        Game.sendMessageNearby(this.getMap(), entity.getX(), entity.getY(),
+                            5, 'The fungus is spreading!');
                     }
                 }
             }
         }
     }
-}
+};
 
-//Entities
+//==========================
+//===== Templates
+//==========================
 
 //Define our main player entity template
 //TODO: move out of Game namespace
 Game.PlayerTemplate = {
     character: '@',
     foreground: 'white',
-    background: 'black',
-    mixins: [Game.Mixins.Moveable, Game.Mixins.PlayerActor, Game.Mixins.Destructible, Game.Mixins.SimpleAttacker]
-}
+    maxHp: 40,
+    attackValue: 10,
+    mixins: [Game.Mixins.Moveable, Game.Mixins.PlayerActor,
+             Game.Mixins.Destructible, Game.Mixins.Attacker,
+             Game.Mixins.MessageRecipient]
+};
 
 //Define a template for a Fungus
 Game.FungusTemplate = {
+    name: 'fungus',
     character: 'F',
     foreground: 'green',
+    maxHp: 10,
     mixins: [Game.Mixins.FungusActor, Game.Mixins.Destructible]
-}
+};
 
 

@@ -123,6 +123,20 @@ Game.Screen.playingScreen = {
                 );
             }
         }
+
+        //Get all messages in the players message queue, and render them to the screen
+        var messages = this._player.getMessages();
+        var messageY = 0;
+
+        for (var i = 0; i < messages.length; i ++) {
+            //Draw each message, adding the number of lines
+            messageY += display.drawText(0, messageY, '%c{white}%b{black}' + messages[i]);
+        }
+
+        //Render the players HP in a status bar at the bottom of the screen
+        var stats = '%c{white}%b{black}';
+        stats += vsprintf('HP: %d/%d ', [this._player.getHp(), this._player.getMaxHp()]);
+        display.drawText(0, screenHeight, stats);
     },
     handleInput: function(inputType, inputData) {
         if (inputType === 'keydown') {

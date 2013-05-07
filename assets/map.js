@@ -36,7 +36,7 @@ Game.Map.prototype.getEngine = function() {
 
 Game.Map.prototype.getEntities = function() {
     return this._entities;
-}
+};
 
 Game.Map.prototype.getEntityAt = function(x, y) {
     //Iterate through every entity, looking for one with matching coordinates
@@ -47,7 +47,29 @@ Game.Map.prototype.getEntityAt = function(x, y) {
     }
     //We didn't find an entity at the provided coordinates
     return false;
-}
+};
+
+Game.Map.prototype.getEntitiesWithinRadius = function(centerX, centerY, radius) {
+    //Get all entities that are within *radius* of a center point (centerX, centerY)
+    var results = [];
+
+    //Determine the bounds of our radius
+    var leftX = centerX - radius;
+    var rightX = centerX + radius;
+    var topY = centerY - radius;
+    var bottomY = centerY + radius;
+
+    //Iterate through all our entities, adding any that fall witin the bounds of our area
+    for (var i = 0; i < this._entities.length; i ++) {
+        if (this._entities[i].getX() >= leftX &&
+            this._entities[i].getX() <= rightX &&
+            this._entities[i].getY() >= topY &&
+            this._entities[i].getY() <= bottomY) {
+            results.push(this._entities[i]);
+        }
+    }
+    return results;
+};
 
 //Get the tile at the given coordinates
 Game.Map.prototype.getTile = function(x, y) {

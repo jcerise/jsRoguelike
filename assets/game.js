@@ -8,7 +8,7 @@ var Game = {
 
     init: function() {
         //Any necessary initilization will go here
-        this._display = new ROT.Display({width:this._display_width, height:this._display_height});
+        this._display = new ROT.Display({width:this._display_width, height:this._display_height + 1});
 
         //Create a helper function for binding an event and sending it to the screen
         var game = this;
