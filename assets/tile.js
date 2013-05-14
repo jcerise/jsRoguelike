@@ -18,6 +18,23 @@ Game.Tile = function(properties) {
 //Make a tile inherit all the functionality from a Glyph
 Game.Tile.extend(Game.Glyph);
 
+//Return all eight neighbors of a tile at the given coordinates
+Game.getNeighborPositions = function(x, y) {
+    var tiles = [];
+    //Generate all possible offsets (8 directions from this tile)
+    for (var dX = -1; dX < 2; dX ++) {
+        for (var dY = -1; dY < 2; dY ++) {
+            //Make sure we don't include the current tile (x=0, y=0)
+            if (dX == 0 && dY == 0) {
+                continue
+            }
+            tiles.push({x: x + dX, y: y + dY});
+        }
+    }
+    //Randomize the order, so we don't give precedence to the top left corner
+    return tiles.randomize();
+}
+
 //Standard getters
 Game.Tile.prototype.isWalkable = function() {
     return this._isWalkable;
@@ -39,4 +56,17 @@ Game.Tile.wallTile = new Game.Tile({
     character: '#',
     foreground: 'goldenrod',
     isDiggable: false
+});
+
+//Create tiles for stairs up and stairs down
+Game.Tile.stairsUpTile = new Game.Tile({
+    character: '<',
+    foreground: 'white',
+    isWalkable: true
+});
+
+Game.Tile.stairsDownTile = new Game.Tile({
+    character: '>',
+    foreground: 'white',
+    isWalkable: true
 });
