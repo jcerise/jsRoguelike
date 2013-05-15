@@ -52,7 +52,7 @@ Game.Mixins.Moveable = {
             if (tile != Game.Tile.stairsUpTile) {
                 Game.sendMessage(this, "You can't go up here!");
             } else {
-                Game.sendMessage(this, "You ascend to level %d!", [z + 1]);
+                Game.sendMessage(this, "You ascend to level %d", [z + 1]);
                 this.setPosition(x, y, z);
             }
         } else if (z > this.getZ()) {
@@ -62,9 +62,7 @@ Game.Mixins.Moveable = {
                 Game.sendMessage(this, "You descend to level %d", [z + 1]);
                 this.setPosition(x, y, z);
             }
-        }
-
-        if (target) {
+        } else if (target) {
             //Check to make sure entity is an attacker
             if (this.hasMixin('Attacker')) {
                 //Entity can attack, so attempt an attack on the target
@@ -74,14 +72,12 @@ Game.Mixins.Moveable = {
                 //We can't attack, so we can't move onto the tile either, so do nothing
                 return false;
             }
-        }
-
-        //Check if the tile about to be moved onto is walkable
-        if (tile.isWalkable()) {
+        } else if (tile.isWalkable()) {
+            //Check if the tile about to be moved onto is walkable
             //Update the entities position, as this is a valid tile to move onto
             this.setPosition(x, y, z);
             return true;
-        } else {
+        } else if (tile.isDiggable()) {
             //if the tile is not walkable, but is diggable, dig the tile and move onto it
             map.dig(x, y, z);
             return true;
