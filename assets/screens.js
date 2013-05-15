@@ -35,38 +35,18 @@ Game.Screen.playingScreen = {
         console.log("Entered playing screen")
         var map = [];
         //Create a map based on the following size parameters
-        var mapWidth = 150;
-        var mapHeight = 150;
+        var mapWidth = 100;
+        var mapHeight = 48;
+        var depth = 6;
 
-        for (var x = 0;  x < mapWidth; x++) {
-            //Create the nested array for the y values
-            map.push([]);
-            //Add all tile to the array
-            for (var y = 0; y > mapHeight; y++) {
-                map[x].push(Game.Tile.nullTile);
-            }
-        }
-
-        //Setup our map generator, currently, I'm just using the built in generators from Rot.js
-        var mapConfig = {
-            roomWidth: [4, 16],
-            roomHeight: [4, 16]
-        };
-        var generator = new ROT.Map.Digger(mapWidth, mapHeight, mapConfig);
-
-        generator.create(function(x, y, v) {
-           if (v === 0) {
-               map[x][y] = Game.Tile.floorTile;
-           } else {
-               map[x][y] = Game.Tile.wallTile
-           }
-        });
+        //Create our maps
+        var tiles = new Game.Builder(mapWidth, mapHeight, depth).getTiles();
 
         //Create the player entity
         this._player = new Game.Entity(Game.PlayerTemplate);
 
         //Create the map instance for this floor
-        this._map = new Game.Map(map, this._player);
+        this._map = new Game.Map(tiles, this._player);
 
         //Start the maps engine
         this._map.getEngine().start();
@@ -93,7 +73,7 @@ Game.Screen.playingScreen = {
         for (var x = topLeftX; x < topLeftX + screenWidth; x++) {
             for (var y = topLeftY; y < topLeftY + screenHeight; y++) {
                 //Fetch the tile at the coordinates, and render it to the screen at the offset position
-                var tile = this._map.getTile(x, y);
+                var tile = this._map.getTile(x, y, this._player.getZ());
                 display.draw(
                     x - topLeftX,
                     y - topLeftY,
@@ -112,7 +92,8 @@ Game.Screen.playingScreen = {
             //Only render this entity if they would show up on the screen
             if (entity.getX() >= topLeftX && entity.getY() >= topLeftY &&
                 entity.getX() < topLeftX + screenWidth &&
-                entity.getY() < topLeftY + screenHeight) {
+                entity.getY() < topLeftY + screenHeight &&
+                entity.getZ() == this._player.getZ()) {
                 //Draw the entity to the screen
                 display.draw(
                   entity.getX() - topLeftX,
@@ -148,26 +129,44 @@ Game.Screen.playingScreen = {
             //Movement keys, just arrow keys for now
             //TODO: Change out to standard VIM keys for movement
             if (inputData.keyCode === ROT.VK_LEFT) {
-                this.move(-1, 0);
+                this.move(-1, 0, 0);
             } else if (inputData.keyCode === ROT.VK_RIGHT) {
-                this.move(1, 0);
+                this.move(1, 0, 0);
             } else if (inputData.keyCode === ROT.VK_UP) {
-                this.move(0, -1);
+                this.move(0, -1, 0);
             } else if (inputData.keyCode === ROT.VK_DOWN) {
-                this.move(0, 1);
+                this.move(0, 1, 0);
+            } else {
+                //No valid key was pressed
+                return;
+            }
+
+            //Unlock the engine
+            this._map.getEngine().unlock();
+
+        } else if (inputType == 'keypress') {
+            var keyChar = String.fromCharCode(inputData.charCode);
+            if (keyChar === '>') {
+                this.move(0, 0, 1);
+            } else if (keyChar === '<') {
+                this.move(0, 0, -1);
+            } else {
+                //Not a valid keypress
+                return;
             }
 
             //Unlock the engine
             this._map.getEngine().unlock();
         }
     },
-    move: function(dX, dY) {
+    move: function(dX, dY, dZ) {
         //Move an entity the specified amount
         var newX = this._player.getX() + dX;
         var newY = this._player.getY() + dY;
+        var newZ = this._player.getZ() + dZ;
 
         //Try and move to the new coordinates specified by dX, dY
-        this._player.tryMove(newX, newY, this._map)
+        this._player.tryMove(newX, newY, newZ, this._map)
 
     }
 

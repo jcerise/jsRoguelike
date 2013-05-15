@@ -26,7 +26,7 @@ var Game = {
         bindEventToScreen('keydown');
         //These are not currently being used, but will be in the future
         //bindEventToScreen('keyup');
-        //bindEventToScreen('keypress');
+        bindEventToScreen('keypress');
     },
     getDisplay: function() {
         //Return the main game display

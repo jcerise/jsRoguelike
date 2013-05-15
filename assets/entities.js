@@ -11,7 +11,7 @@ Game.sendMessage = function(recipient, message, args) {
     }
 };
 
-Game.sendMessageNearby = function(map, centerX, centerY, radius, message, args) {
+Game.sendMessageNearby = function(map, centerX, centerY, centerZ, radius, message, args) {
     //Send a message to every entity nearby and capable of receiving messages
 
     //If args were passed, then we can format the message, otherwise, no formatting will be used
@@ -20,7 +20,7 @@ Game.sendMessageNearby = function(map, centerX, centerY, radius, message, args) 
     }
 
     //Get all nearby entities
-    var entities = map.getEntitiesWithinRadius(centerX, centerY, radius);
+    var entities = map.getEntitiesWithinRadius(centerX, centerY, centerZ, radius);
 
     //Iterate through every nearby entity, sending the message to each one capable of receiving it
     for (var i = 0; i < entities.length; i ++) {
@@ -38,12 +38,31 @@ Game.sendMessageNearby = function(map, centerX, centerY, radius, message, args) 
 //Define a Moveable mixin. This will try and move the entity in the given direction
 Game.Mixins.Moveable = {
     name: 'Moveable',
-    tryMove: function(x, y, map) {
-        var tile = map.getTile(x, y);
+    tryMove: function(x, y, z, map) {
+
+        //We must use the entities z level, not the target z level,a s we might be changing z levels
+        var tile = map.getTile(x, y, this.getZ());
 
         //Check to see if there is an entity at the desired coordinates
         //If there is, check if entity can attack. If it can, attack the target
-        var target = map.getEntityAt(x, y);
+        var target = map.getEntityAt(x, y, z);
+
+        //first, we need to check if our z level is changing
+        if (z < this.getZ()) {
+            if (tile != Game.Tile.stairsUpTile) {
+                Game.sendMessage(this, "You can't go up here!");
+            } else {
+                Game.sendMessage(this, "You ascend to level %d!", [z + 1]);
+                this.setPosition(x, y, z);
+            }
+        } else if (z > this.getZ()) {
+            if (tile != Game.Tile.stairsDownTile) {
+                Game.sendMessage(this, "You can't go down here!");
+            } else {
+                Game.sendMessage(this, "You descend to level %d", [z + 1]);
+                this.setPosition(x, y, z);
+            }
+        }
 
         if (target) {
             //Check to make sure entity is an attacker
@@ -60,12 +79,11 @@ Game.Mixins.Moveable = {
         //Check if the tile about to be moved onto is walkable
         if (tile.isWalkable()) {
             //Update the entities position, as this is a valid tile to move onto
-            this._x = x;
-            this._y = y;
+            this.setPosition(x, y, z);
             return true;
         } else {
             //if the tile is not walkable, but is diggable, dig the tile and move onto it
-            map.dig(x, y);
+            map.dig(x, y, z);
             return true;
         }
         //The tile is not walkable or diggable, and cannot be moved onto
@@ -186,7 +204,7 @@ Game.Mixins.FungusActor = {
         //First, check to see if this fungus can grow anymore
         if (this._growthsRemaining > 0) {
             //Give a two percent chance of growth
-            if (Math.random() <= 0.01) {
+            if (Math.random() <= 0.001) {
                 //This fungus is growing this turn, so find a random adjacent tile for it to grow to
                 //This is done by choosing a random number between -1 and 1 for x and y, and applying those
                 //to the current entity coordinates
@@ -196,16 +214,15 @@ Game.Mixins.FungusActor = {
                 //Make sure this fungus isnt trying to spawn on itself
                 if (xOffset != 0 || yOffset != 0) {
                     //Check to make sure an entity can legally occupy the chosen tile
-                    if (this.getMap().isEmptyFloor(this.getX() + xOffset, this.getY() + yOffset)) {
+                    if (this.getMap().isEmptyFloor(this.getX() + xOffset, this.getY() + yOffset, this.getZ())) {
                         //Everything is good, spawn a new fungus
                         var entity = new Game.Entity(Game.FungusTemplate);
-                        entity.setX(this.getX() + xOffset);
-                        entity.setY(this.getY() + yOffset);
+                        entity.setPosition(this.getX() + xOffset, this.getY() + yOffset, this.getZ())
                         this.getMap().addEntity(entity);
                         this._growthsRemaining --;
 
                         //Broadcast a message to all nearby entities alerting them to the growth
-                        Game.sendMessageNearby(this.getMap(), entity.getX(), entity.getY(),
+                        Game.sendMessageNearby(this.getMap(), entity.getX(), entity.getY(), entity.getZ(),
                             5, 'The fungus is spreading!');
                     }
                 }
