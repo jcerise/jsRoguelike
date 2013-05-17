@@ -29,6 +29,7 @@ Game.Screen.startScreen = {
 //Define the main playing screen
 Game.Screen.playingScreen = {
     _map: null,
+    exploredTiles: null,
     _player: null,
 
     enter: function() {
@@ -48,11 +49,19 @@ Game.Screen.playingScreen = {
         //Create the map instance for this floor
         this._map = new Game.Map(tiles, this._player);
 
+        //Initialize our explored tiles array
+        this._exploredTiles = [];
+        for (var i = 0; i < depth; i ++) {
+            this._exploredTiles.push(i);
+            this._exploredTiles[i] = [];
+        }
+
         //Start the maps engine
         this._map.getEngine().start();
     },
     exit: function() { console.log("Exited playing screen") },
     render: function(display) {
+        console.log(this._map);
         var screenWidth = Game.getScreenWidth();
         var screenHeight = Game.getScreenHeight();
 
@@ -68,19 +77,62 @@ Game.Screen.playingScreen = {
         //make sure we still have enough space to fill an entire game screen
         topLeftY = Math.min(topLeftY, this._map.getHeight() - screenHeight);
 
-        //Iterate through all visible tiles and render them
+        //Calculate the Field of View
+        var map = this._map;
+        var player = this._player;
+
+        var lightPasses = function(x, y) {
+            var tile = map.getTile(x, y, player.getZ());
+            if (tile === Game.Tile.floorTile) {
+                return true;
+            } else {
+                return false
+            }
+        }
+
+        var fov = new ROT.FOV.PreciseShadowcasting(lightPasses);
+
+        //Set which tiles are visible this turn. This gets reset each time the screen is rendered.
+        var visibleTiles = [];
+
+        //Compute the field of view, and draw all visible tiles to the screen, in color
+        fov.compute(this._player.getX(), this._player.getY(), 5, function(x, y, r, visibility) {
+            var tile =  map.getTile(x, y, player.getZ());
+            display.draw(
+                x - topLeftX,
+                y - topLeftY,
+                tile.getChar(),
+                tile.getForeground(),
+                tile.getBackground()
+            );
+            visibleTiles.push(x+","+y);
+        });
+
+        //Now, show only tiles that have already been visited, and display any not in the field of view greyed out
         //Start at our topleft corner, and draw the map according to where the player currently is
         for (var x = topLeftX; x < topLeftX + screenWidth; x++) {
             for (var y = topLeftY; y < topLeftY + screenHeight; y++) {
-                //Fetch the tile at the coordinates, and render it to the screen at the offset position
+                //Fetch the tile at the coordinates, and render it to the screen at the offset position if its valid
                 var tile = this._map.getTile(x, y, this._player.getZ());
-                display.draw(
-                    x - topLeftX,
-                    y - topLeftY,
-                    tile.getChar(),
-                    tile.getForeground(),
-                    tile.getBackground()
-                );
+                if (this._exploredTiles[this._player.getZ()].indexOf(x+","+y) != -1 && visibleTiles.indexOf(x+","+y) == -1) {
+                    display.draw(
+                        x - topLeftX,
+                        y - topLeftY,
+                        tile.getChar(),
+                        'grey',
+                        tile.getBackground()
+                    );
+                }
+
+
+            }
+        }
+
+        //Dump the visible tiles into the explored tiles array, as we have already viewed them, and they should
+        //continue to be shown, but greyed out
+        for (var i = 0; i < visibleTiles.length; i ++) {
+            if (this._exploredTiles[player.getZ()].indexOf(visibleTiles[i]) == -1) {
+                this._exploredTiles[player.getZ()].push(visibleTiles[i]);
             }
         }
 
@@ -89,11 +141,12 @@ Game.Screen.playingScreen = {
         for (var i = 0; i < entities.length; i ++) {
             var entity = entities[i];
 
-            //Only render this entity if they would show up on the screen
+            //Only render this entity if they would show up on the screen and are visible in the current FOV
             if (entity.getX() >= topLeftX && entity.getY() >= topLeftY &&
                 entity.getX() < topLeftX + screenWidth &&
                 entity.getY() < topLeftY + screenHeight &&
-                entity.getZ() == this._player.getZ()) {
+                entity.getZ() == this._player.getZ() &&
+                visibleTiles.indexOf(entity.getX()+","+entity.getY()) != -1) {
                 //Draw the entity to the screen
                 display.draw(
                   entity.getX() - topLeftX,

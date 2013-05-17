@@ -12,7 +12,6 @@ Game.Tile = function(properties) {
     //Set up tile properties, set to false by default
     this._isWalkable = properties['isWalkable'] || false;
     this._isDiggable = properties['isDiggable'] || false;
-
 };
 
 //Make a tile inherit all the functionality from a Glyph

@@ -18,3 +18,11 @@ Game.Glyph.prototype.getBackground = function() {
 Game.Glyph.prototype.getForeground = function() {
     return this._foreground;
 };
+
+Game.Glyph.prototype.setForeground = function(foreground) {
+    this._foreground = foreground;
+}
+
+Game.Glyph.prototype.setBackground = function(background) {
+    this._background = background;
+}
